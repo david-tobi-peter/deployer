@@ -23,7 +23,8 @@
     "sqlite3": "^5.1.7",
     "typeorm": "^0.3.28",
     "uuid": "^14.0.0",
-    "winston": "^3.19.0"
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

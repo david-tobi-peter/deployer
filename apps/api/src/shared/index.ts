@@ -7,10 +7,10 @@ export enum DeploymentStatusEnum {
 }
 
 export enum LogLevelEnum {
-  FATAL = "FATAL",
-  ERROR = "ERROR",
-  WARN = "WARN",
-  INFO = "INFO",
-  DEBUG = "DEBUG",
-  TRACE = "TRACE",
+  FATAL = "fatal",
+  ERROR = "error",
+  WARN = "warn",
+  INFO = "info",
+  DEBUG = "debug",
+  TRACE = "trace",
 }

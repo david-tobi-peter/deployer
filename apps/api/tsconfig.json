@@ -35,6 +35,9 @@
       ],
       "@db/*": [
         "./src/db/*"
+      ],
+      "@loggers/*": [
+        "./src/loggers/*"
       ]
     }
   }

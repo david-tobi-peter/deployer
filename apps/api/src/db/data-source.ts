@@ -3,6 +3,7 @@ import { DataSource } from "typeorm";
 import config from "@/config/index.js";
 import * as entities from "@/db/entities/index.js";
 import * as migrations from "@/db/migrations/index.js";
+import { TypeORMCustomLogger } from "@/loggers/typeorm.logger.js";
 
 export const AppDataSource = new DataSource({
   ...config.db,
@@ -11,6 +12,7 @@ export const AppDataSource = new DataSource({
   synchronize: false,
   migrationsRun: true,
   logging: true,
+  logger: new TypeORMCustomLogger(),
   maxQueryExecutionTime: 500,
   migrationsTransactionMode: "all",
 });
