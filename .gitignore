@@ -35,3 +35,6 @@ storage/
 
 # Custom ignores
 crock.md
+
+# Scripts
+apps/api/src/scripts/test-db.ts
