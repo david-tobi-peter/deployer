@@ -38,6 +38,9 @@
       ],
       "@loggers/*": [
         "./src/loggers/*"
+      ],
+      "@errors/*": [
+        "./src/errors/*"
       ]
     }
   }
