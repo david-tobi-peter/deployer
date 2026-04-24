@@ -7,13 +7,13 @@ import config from "@/config/index.js";
 
 const { combine, timestamp, printf, colorize } = winston.format;
 
-const als = new AsyncLocalStorage<{ traceId?: string; deploymentId?: string }>();
+export const als = new AsyncLocalStorage<{ traceId?: string; deploymentId?: string }>();
 
 const localFormat = printf(({ level, message, timestamp, stack, ...meta }) => {
   const store = als.getStore();
 
   const traceId = store?.traceId
-    ? ` [${store.traceId}]`
+    ? ` [TRACE:${store.traceId}]`
     : "";
   const deploymentId = store?.deploymentId
     ? ` [DEPLOY:${store.deploymentId}]`

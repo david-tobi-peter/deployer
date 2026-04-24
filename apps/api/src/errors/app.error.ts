@@ -13,7 +13,7 @@ export abstract class AppError extends Error {
 
   constructor(type: ERROR_TYPE_ENUM, message?: string) {
     super(message);
-    Object.setPrototypeOf(this, Error.prototype);
+    Object.setPrototypeOf(this, new.target.prototype);
     this.type = type;
   }
 

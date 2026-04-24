@@ -14,3 +14,12 @@ export enum LogLevelEnum {
   DEBUG = "debug",
   TRACE = "trace",
 }
+
+export interface IDeploymentResponse {
+  id: string;
+  gitUrl: string;
+  status: DeploymentStatusEnum;
+  containerId?: string | null;
+  imageTag?: string | null;
+  log?: any;
+}

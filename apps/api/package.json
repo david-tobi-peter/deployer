@@ -5,7 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "tsx watch src/index.ts",
     "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "migration:create": "tsx src/scripts/create-database-migration-file.ts"
@@ -21,6 +21,7 @@
     "express": "^5.2.1",
     "reflect-metadata": "^0.2.2",
     "sqlite3": "^5.1.7",
+    "typedi": "^0.10.0",
     "typeorm": "^0.3.28",
     "uuid": "^14.0.0",
     "winston": "^3.19.0",
