@@ -32,9 +32,11 @@ const app = {
   environment: process.env.NODE_ENV || "development",
   isDev: process.env.NODE_ENV === "development",
   isProduction: process.env.NODE_ENV === "production",
-  isLocal: process.env.NODE_ENV === "local",
   PORT: +(process.env.PORT || 3000),
   STORAGE_DIR,
+  BUILDKIT_HOST: process.env.BUILDKIT_HOST || "docker-container://buildkit",
+  APP_URL: process.env.APP_URL || "http://localhost",
+  DEPLOYMENT_PORT_START: +(process.env.DEPLOYMENT_PORT_START || 4000),
 };
 
 const db = {

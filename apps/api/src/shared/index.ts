@@ -19,7 +19,9 @@ export interface IDeploymentResponse {
   id: string;
   gitUrl: string;
   status: DeploymentStatusEnum;
-  containerId?: string | null;
-  imageTag?: string | null;
-  log?: any;
+  containerId: string | null;
+  imageTag: string | null;
+  commitHash: string;
+  port: number | null;
+  liveUrl: string | null;
 }

@@ -21,11 +21,17 @@ export class Deployment {
   @Column({ name: "image_tag", type: "varchar", nullable: true })
   imageTag!: string | null;
 
+  @Column({ name: "commit_hash", type: "varchar" })
+  commitHash!: string;
+
   @Column({ name: "container_id", type: "varchar", nullable: true })
   containerId!: string | null;
 
   @Column({ name: "live_url", type: "varchar", nullable: true })
   liveUrl!: string | null;
+
+  @Column({ name: "port", type: "integer", nullable: true })
+  port!: number | null;
 
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
