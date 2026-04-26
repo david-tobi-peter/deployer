@@ -52,15 +52,12 @@ export class PipelineService {
         }
       });
 
-      // Pipe logs to emitter (for SSE later)
       buildProcess.stdout?.on("data", (data) => {
         const line = data.toString();
-        Logger.info(`[BUILD-STDOUT]: ${line}`);
         deploymentLogEmitter.emit(`log:${deployment.id}`, line);
       });
       buildProcess.stderr?.on("data", (data) => {
         const line = data.toString();
-        Logger.info(`[BUILD-STDERR]: ${line}`);
         deploymentLogEmitter.emit(`log:${deployment.id}`, line);
       });
 
@@ -88,21 +85,24 @@ export class PipelineService {
 
       await container.start();
 
+      const liveUrl = `${config.app.APP_URL}:${port}`;
+
       await this.deploymentService.updateDeployment(deployment.id, {
         status: DeploymentStatusEnum.RUNNING,
         imageTag: imageTag,
         containerId: container.id,
         port: port,
-        liveUrl: `${config.app.APP_URL}:${port}`
+        liveUrl: liveUrl
       });
-      Logger.info(`Deployment successfully completed for ${deployment.id}. Live at: ${config.app.APP_URL}:${port}`);
+      Logger.info(`Deployment successfully completed for ${deployment.id}. Live at: ${liveUrl}`);
+
+      deploymentLogEmitter.emit(`log:${deployment.id}`, `__DONE__:${liveUrl}`);
 
     } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
       await this.deploymentService.updateStatus(deployment.id, DeploymentStatusEnum.FAILED);
 
-      const message = error instanceof Error ? error.message : String(error);
-      deploymentLogEmitter.emit(`log:${deployment.id}`, `ERROR: Deployment failed. ${message}\n`);
-
+      deploymentLogEmitter.emit(`log:${deployment.id}`, `__ERROR__:${message}`);
       throw error;
     } finally {
       await fs.promises.rm(buildDir, { recursive: true, force: true });
