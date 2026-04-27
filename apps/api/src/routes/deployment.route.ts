@@ -10,5 +10,7 @@ router.get("/stream", controller.streamDeployments);
 router.get("/:id", controller.getById);
 router.get("/:id/logs", controller.streamLogs);
 router.post("/", controller.create);
+router.delete("/:id", controller.delete);
+router.post("/:id/restart", controller.restart);
 
 export default router;

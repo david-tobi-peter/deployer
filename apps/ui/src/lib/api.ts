@@ -29,5 +29,14 @@ export const deploymentApi = {
   create: async (gitUrl: string, commitHash?: string) => {
     const { data } = await api.post<{ data: Deployment }>('/deployments', { gitUrl, commitHash });
     return data;
+  },
+
+  delete: async (id: string) => {
+    await api.delete(`/deployments/${id}`);
+  },
+
+  restart: async (id: string) => {
+    const { data } = await api.post<{ data: Deployment }>(`/deployments/${id}/restart`);
+    return data;
   }
 };

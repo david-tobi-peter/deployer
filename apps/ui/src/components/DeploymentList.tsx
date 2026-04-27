@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { deploymentApi } from '../lib/api';
 import { StatusBadge } from './StatusBadge';
 import { LogViewer } from './LogViewer';
-import { ExternalLink, Hash, Clock, Terminal } from 'lucide-react';
+import { ExternalLink, Hash, Clock, Terminal, Trash2, RefreshCw } from 'lucide-react';
 
 export function DeploymentList() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -24,6 +24,16 @@ export function DeploymentList() {
   const { data, isLoading } = useQuery({
     queryKey: ['deployments', page],
     queryFn: () => deploymentApi.getAll(page, limit),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deploymentApi.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['deployments'] }),
+  });
+
+  const restartMutation = useMutation({
+    mutationFn: (id: string) => deploymentApi.restart(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['deployments'] }),
   });
 
   if (isLoading) {
@@ -80,6 +90,30 @@ export function DeploymentList() {
                   <Terminal className="w-4 h-4" />
                   Logs
                 </button>
+
+                {(d.status === 'RUNNING' || d.status === 'FAILED') && (
+                  <button
+                    onClick={() => restartMutation.mutate(d.id)}
+                    disabled={restartMutation.isPending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-sm transition-colors border border-amber-500/20 disabled:opacity-50"
+                    title={d.status === 'FAILED' ? 'Retry' : 'Restart'}
+                  >
+                    <RefreshCw className={`w-4 h-4 ${restartMutation.isPending ? 'animate-spin' : ''}`} />
+                    {d.status === 'FAILED' ? 'Retry' : 'Restart'}
+                  </button>
+                )}
+
+                {(d.status === 'RUNNING' || d.status === 'FAILED') && (
+                  <button
+                    onClick={() => { if(confirm('Are you sure you want to delete this deployment?')) deleteMutation.mutate(d.id) }}
+                    disabled={deleteMutation.isPending}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm transition-colors border border-red-500/20 disabled:opacity-50"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete
+                  </button>
+                )}
 
                 {d.status === 'RUNNING' && d.liveUrl && (
                   <a

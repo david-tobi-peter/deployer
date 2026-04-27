@@ -3,6 +3,8 @@ import { app } from "./app.js";
 import { AppDataSource } from "@/db/data-source.js";
 import { Logger } from "@loggers/index.js";
 import { ErrorHandler } from "@errors/index.js";
+import { globalDeploymentEmitter } from "@/services/deployment.service.js";
+import { deploymentLogEmitter } from "@/services/pipeline.service.js";
 import config from "@/config/index.js";
 
 const server = new Server(app);
@@ -18,6 +20,9 @@ async function start(): Promise<void> {
 
 async function shutdown(signal: string): Promise<void> {
   Logger.info(`Received ${signal}. Shutting down gracefully...`);
+
+  globalDeploymentEmitter.removeAllListeners();
+  deploymentLogEmitter.removeAllListeners();
 
   await new Promise<void>((resolve, reject) =>
     server.close((err) => (err ? reject(err) : resolve()))

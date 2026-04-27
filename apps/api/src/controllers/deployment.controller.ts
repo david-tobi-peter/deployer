@@ -21,6 +21,8 @@ export class DeploymentController {
     this.create = this.create.bind(this);
     this.streamLogs = this.streamLogs.bind(this);
     this.streamDeployments = this.streamDeployments.bind(this);
+    this.delete = this.delete.bind(this);
+    this.restart = this.restart.bind(this);
   }
 
   async getAll(req: Request, res: Response) {
@@ -72,6 +74,30 @@ export class DeploymentController {
       this.pipelineService.run(deployment);
 
       res.status(201).json({ data: deployment });
+    } catch (error) {
+      ErrorHandler.handleError(error, res);
+    }
+  }
+
+  async delete(req: Request, res: Response) {
+    try {
+      await this.deploymentService.deleteDeployment(req.params.id as string);
+
+      res.status(204).send();
+    } catch (error) {
+      ErrorHandler.handleError(error, res);
+    }
+  }
+
+  async restart(req: Request, res: Response) {
+    try {
+      const deployment = await this.deploymentService.restartDeployment(req.params.id as string);
+
+      if (deployment.status === "PENDING") {
+        this.pipelineService.run(deployment);
+      }
+
+      res.status(200).json({ data: deployment });
     } catch (error) {
       ErrorHandler.handleError(error, res);
     }
