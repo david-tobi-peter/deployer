@@ -13,7 +13,7 @@ async function start(): Promise<void> {
   await AppDataSource.initialize();
   Logger.info("Database initialized");
 
-  const port = config.app.PORT ?? 3000;
+  const port = config.app.PORT;
   await new Promise<void>((resolve) => server.listen(port, resolve));
   Logger.info(`Deployer Control Plane running on port ${port}`);
 }
