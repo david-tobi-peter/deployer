@@ -1,55 +1,56 @@
-import "reflect-metadata";
-import express from "express";
-import cors from "cors";
-import config from "@/config/index.js";
+import { Server } from "http";
+import { app } from "./app.js";
 import { AppDataSource } from "@/db/data-source.js";
 import { Logger } from "@loggers/index.js";
-import { ErrorHandler, ResourceNotFoundError } from "@errors/index.js";
-import apiRoutes from "@/routes/index.js";
-import { v4 as uuid } from "uuid";
-import { als } from "@loggers/index.js";
+import { ErrorHandler } from "@errors/index.js";
+import config from "@/config/index.js";
 
-const app = express();
+const server = new Server(app);
 
-app.use(cors());
-app.use(express.json());
+async function start(): Promise<void> {
+  await AppDataSource.initialize();
+  Logger.info("Database initialized");
 
-app.use((req, res, next) => {
-  const traceId = uuid();
-  als.run({ traceId }, () => {
-    Logger.info(`Incoming Request: ${req.method} ${req.originalUrl}`);
-    next();
-  });
-});
+  const port = config.app.PORT ?? 3000;
+  await new Promise<void>((resolve) => server.listen(port, resolve));
+  Logger.info(`Deployer Control Plane running on port ${port}`);
+}
 
-app.use("/api", apiRoutes);
+async function shutdown(signal: string): Promise<void> {
+  Logger.info(`Received ${signal}. Shutting down gracefully...`);
 
-app.use((req, res) => {
-  ErrorHandler.handleError(new ResourceNotFoundError(`Route ${req.method} ${req.originalUrl} not found`), res);
-});
+  await new Promise<void>((resolve, reject) =>
+    server.close((err) => (err ? reject(err) : resolve()))
+  );
+  Logger.info("HTTP server closed");
 
-async function startServer() {
-  try {
-    await AppDataSource.initialize();
-    Logger.info("Database initialized correctly");
-
-    const port = config.app.PORT || 3000;
-    app.listen(port, () => {
-      Logger.info(`Deployer Control Plane running on port ${port}`);
-    });
-  } catch (error) {
-    ErrorHandler.handleFatalError(error, "ServerBootstrap");
+  if (AppDataSource.isInitialized) {
+    await AppDataSource.destroy();
+    Logger.info("Database connection closed");
   }
 }
 
-process.on("uncaughtException", (reason: unknown) => {
-  const error = reason instanceof Error ? reason : new Error(String(reason));
-  ErrorHandler.handleFatalError(error, "UncaughtException");
-});
+function handleSignal(signal: string): void {
+  shutdown(signal)
+    .then(() => process.exit(0))
+    .catch((err) => ErrorHandler.handleFatalError(err, `Shutdown(${signal})`));
+}
 
-process.on("unhandledRejection", (reason: unknown) => {
-  const error = reason instanceof Error ? reason : new Error(String(reason));
-  ErrorHandler.handleFatalError(error, "UnhandledRejection");
-});
+process.on("SIGTERM", () => handleSignal("SIGTERM"));
+process.on("SIGINT", () => handleSignal("SIGINT"));
 
-startServer();
+process.on("uncaughtException", (err) =>
+  ErrorHandler.handleFatalError(
+    err instanceof Error ? err : new Error(String(err)),
+    "UncaughtException"
+  )
+);
+
+process.on("unhandledRejection", (reason) =>
+  ErrorHandler.handleFatalError(
+    reason instanceof Error ? reason : new Error(String(reason)),
+    "UnhandledRejection"
+  )
+);
+
+start().catch((err) => ErrorHandler.handleFatalError(err, "ServerBootstrap"));
