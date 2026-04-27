@@ -1,13 +1,15 @@
 :80 {
 	handle /api/* {
-		reverse_proxy api:{$API_PORT:3000}
+		reverse_proxy api:3000
 	}
 
 	# Dynamic Proxy for deployments: /d/deploy-{id}/* -> deploy-{id}:3000/*
 	handle /d/* {
 		@id path_regexp id ^/d/([^/]+)(/.*)?$
-		rewrite @id {re.id.2}
-		reverse_proxy @id {re.id.1}:3000
+		handle @id {
+			rewrite {re.id.2}
+			reverse_proxy {re.id.1}:3000
+		}
 	}
 
 	handle {

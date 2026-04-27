@@ -27,8 +27,6 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
-    environment:
-      - API_PORT=${PORT:-3000}
     volumes:
       - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile
       - ui-dist:/srv/ui:ro
@@ -53,6 +51,7 @@ services:
 
 networks:
   deployer-net:
+    name: deployer-net
     driver: bridge
 
 volumes:

@@ -67,6 +67,8 @@ export class PipelineService {
           "MISE_FETCH_REMOTE_VERSIONS_TIMEOUT=300",
           "--env",
           "MISE_CONNECT_TIMEOUT=300",
+          "--env",
+          "PORT=3000",
         ],
         {
           cwd: buildDir,
@@ -98,9 +100,14 @@ export class PipelineService {
       const container = await docker.createContainer({
         Image: imageTag,
         name: `deploy-${deployment.id}`,
-        ExposedPorts: { "3000/tcp": {} },
+        Env: ["PORT=3000"],
+        ExposedPorts: {
+          "3000/tcp": {},
+        },
         HostConfig: {
-          PortBindings: { "3000/tcp": [{ HostPort: port.toString() }] },
+          PortBindings: {
+            "3000/tcp": [{ HostPort: port.toString() }]
+          },
           NetworkMode: "deployer-net",
           RestartPolicy: {
             Name: "on-failure",
@@ -145,26 +152,41 @@ export class PipelineService {
   /**
    * @private
    * @param {number} startPort
-   * @param {number} maxPort
    * @returns {Promise<number>}
    */
-  private async findFreePort(startPort: number, maxPort: number = 65535): Promise<number> {
-    if (startPort > maxPort) {
-      throw new InternalServerError(`No free ports available between ${config.app.DEPLOYMENT_PORT_START} and ${maxPort}`);
+  private async findFreePort(startPort: number): Promise<number> {
+    const docker = new Docker();
+    const containers = await docker.listContainers({ all: true });
+    const usedPorts = new Set<number>();
+
+    for (const container of containers) {
+      if (container.Ports) {
+        for (const portInfo of container.Ports) {
+          if (portInfo.PublicPort) {
+            usedPorts.add(portInfo.PublicPort);
+          }
+        }
+      }
     }
 
-    return new Promise((resolve, reject) => {
-      const server = net.createServer();
-      server.unref();
+    let port = startPort;
+    while (true) {
+      while (usedPorts.has(port)) {
+        port++;
+      }
 
-      server.on("error", () => {
-        resolve(this.findFreePort(startPort + 1, maxPort));
+      const isFree = await new Promise<boolean>((resolve) => {
+        const server = net.createServer();
+        server.unref();
+        server.on("error", () => resolve(false));
+        server.listen(port, () => server.close(() => resolve(true)));
       });
 
-      server.listen(startPort, () => {
-        const address = server.address() as AddressInfo;
-        server.close(() => resolve(address.port));
-      });
-    });
+      if (isFree) {
+        return port;
+      }
+
+      port++;
+    }
   }
 }
