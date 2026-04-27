@@ -1,0 +1,15 @@
+{
+	admin off
+}
+
+:80 {
+	handle /api/* {
+		reverse_proxy api:{$API_PORT:3000}
+	}
+
+	handle {
+		root * /srv/ui
+		try_files {path} /index.html
+		file_server
+	}
+}

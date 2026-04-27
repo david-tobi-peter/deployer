@@ -36,7 +36,7 @@ const app = {
   STORAGE_DIR,
   BUILDKIT_HOST: process.env.BUILDKIT_HOST || "docker-container://buildkit",
   APP_URL: process.env.APP_URL || "http://localhost",
-  DEPLOYMENT_PORT_START: +(process.env.DEPLOYMENT_PORT_START || 4000),
+  DEPLOYMENT_PORT_START: +(process.env.DEPLOYMENT_PORT_START || 4000)
 };
 
 const db = {

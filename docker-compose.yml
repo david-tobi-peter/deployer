@@ -1,0 +1,57 @@
+services:
+  api:
+    build: ./apps/api
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - api-storage:/app/storage
+      - ./infra/buildkit/buildkitd.toml:/etc/buildkit/buildkitd.toml
+    env_file:
+      - .env
+    networks:
+      - deployer-net
+    depends_on:
+      - buildkit
+
+  ui-build:
+    build: ./apps/ui
+    volumes:
+      - ui-dist:/srv/ui
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      - API_PORT=${PORT:-3000}
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - ui-dist:/srv/ui:ro
+      - caddy-data:/data
+    networks:
+      - deployer-net
+    depends_on:
+      ui-build:
+        condition: service_completed_successfully
+      api:
+        condition: service_started
+
+  buildkit:
+    image: moby/buildkit:latest
+    privileged: true
+    restart: unless-stopped
+    volumes:
+      - ./infra/buildkit/buildkitd.toml:/etc/buildkit/buildkitd.toml
+    networks:
+      - deployer-net
+    command: ["--addr", "tcp://0.0.0.0:1234"]
+
+networks:
+  deployer-net:
+    driver: bridge
+
+volumes:
+  api-storage:
+  ui-dist:
+  caddy-data:

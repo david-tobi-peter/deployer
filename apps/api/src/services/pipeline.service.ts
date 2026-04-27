@@ -87,6 +87,7 @@ export class PipelineService {
         ExposedPorts: { "3000/tcp": {} },
         HostConfig: {
           PortBindings: { "3000/tcp": [{ HostPort: port.toString() }] },
+          NetworkMode: "deployer-net",
           RestartPolicy: {
             Name: "on-failure",
             MaximumRetryCount: 3
