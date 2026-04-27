@@ -65,7 +65,6 @@ export class DeploymentService {
 
     const deployment = await this.repo.findOne({
       where: { id },
-      relations: { log: true },
     });
 
     if (!deployment) {

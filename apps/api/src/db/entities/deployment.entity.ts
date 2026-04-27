@@ -1,5 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne } from "typeorm";
-import { Log } from "@entities/log.entity.js";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from "typeorm";
 import { DeploymentStatusEnum } from "@shared/index.js";
 
 @Entity({ name: "deployments" })
@@ -39,6 +38,4 @@ export class Deployment {
   @UpdateDateColumn({ name: "updated_at", nullable: true })
   updatedAt!: Date | null;
 
-  @OneToOne(() => Log, (log) => log.deployment)
-  log!: Log;
 }

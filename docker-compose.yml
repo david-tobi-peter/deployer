@@ -1,11 +1,13 @@
 services:
   api:
-    build: ./apps/api
+    build:
+      context: ./apps/api
+      network: host
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - api-storage:/app/storage
-      - ./infra/buildkit/buildkitd.toml:/etc/buildkit/buildkitd.toml
+      - ./logs:/app/logs
     env_file:
       - .env
     networks:
@@ -14,7 +16,9 @@ services:
       - buildkit
 
   ui-build:
-    build: ./apps/ui
+    build:
+      context: ./apps/ui
+      network: host
     volumes:
       - ui-dist:/srv/ui
 
@@ -45,7 +49,7 @@ services:
       - ./infra/buildkit/buildkitd.toml:/etc/buildkit/buildkitd.toml
     networks:
       - deployer-net
-    command: ["--addr", "tcp://0.0.0.0:1234"]
+    command: ["--addr", "tcp://0.0.0.0:1234", "--config", "/etc/buildkit/buildkitd.toml"]
 
 networks:
   deployer-net:

@@ -46,22 +46,36 @@ export class PipelineService {
       emitAndLog(`Cloning ${deployment.gitUrl}...`);
       await execa("git", ["clone", deployment.gitUrl, "."], { cwd: buildDir });
 
-      Logger.info(`Checking out commit ${deployment.commitHash}...`);
-      emitAndLog(`Checking out commit ${deployment.commitHash}...`);
+      Logger.info(`Checking out commit ${deployment.commitHash}`);
+      emitAndLog(`Checking out commit ${deployment.commitHash}`);
       await execa("git", ["checkout", deployment.commitHash], { cwd: buildDir });
 
       const imageTag = `deployer-${deployment.commitHash.substring(0, 8)}`;
 
       Logger.info(`Building image with Railpack: ${imageTag}`);
       emitAndLog(`Building image with Railpack: ${imageTag}`);
-      const buildProcess = execa("railpack", ["build", ".", "--name", imageTag], {
-        cwd: buildDir,
-        extendEnv: true,
-        env: {
-          BUILDKIT_HOST: config.app.BUILDKIT_HOST,
-          MISE_HTTP_TIMEOUT: "300"
+      const buildProcess = execa(
+        "railpack",
+        [
+          "build",
+          ".",
+          "--name",
+          imageTag,
+          "--env",
+          "MISE_HTTP_TIMEOUT=300",
+          "--env",
+          "MISE_FETCH_REMOTE_VERSIONS_TIMEOUT=300",
+          "--env",
+          "MISE_CONNECT_TIMEOUT=300",
+        ],
+        {
+          cwd: buildDir,
+          extendEnv: true,
+          env: {
+            BUILDKIT_HOST: config.app.BUILDKIT_HOST,
+          },
         }
-      });
+      );
 
       buildProcess.stdout?.on("data", (data) => {
         const lines = data.toString().split('\n').filter((l: string) => l);
@@ -97,7 +111,7 @@ export class PipelineService {
 
       await container.start();
 
-      const liveUrl = `${config.app.APP_URL}:${port}`;
+      const liveUrl = `/d/deploy-${deployment.id}`;
 
       await this.deploymentService.updateDeployment(deployment.id, {
         status: DeploymentStatusEnum.RUNNING,
