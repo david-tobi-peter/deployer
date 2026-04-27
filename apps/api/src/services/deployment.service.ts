@@ -83,14 +83,14 @@ export class DeploymentService {
       order: { createdAt: "DESC" }
     });
 
-    if (existing) {
-      if (existing.status === DeploymentStatusEnum.BUILDING || existing.status === DeploymentStatusEnum.DEPLOYING) {
-        throw new BadRequestError("Container is already in pipeline");
-      }
-      if (existing.status === DeploymentStatusEnum.RUNNING) {
-        throw new BadRequestError("Container has already been built");
-      }
-    }
+    // if (existing) {
+    //   if (existing.status === DeploymentStatusEnum.BUILDING || existing.status === DeploymentStatusEnum.DEPLOYING) {
+    //     throw new BadRequestError("Container is already in pipeline");
+    //   }
+    //   if (existing.status === DeploymentStatusEnum.RUNNING) {
+    //     throw new BadRequestError("Container has already been built");
+    //   }
+    // }
 
     Logger.info(`Creating a new deployment record in the database for ${gitUrl} at ${resolvedHash}...`);
 
@@ -127,6 +127,13 @@ export class DeploymentService {
       const resolved = stdout.split(/\s+/)[0];
 
       if (!resolved) {
+        if (commitHash && /^[0-9a-f]{7,40}$/i.test(commitHash)) {
+          Logger.warn(
+            `Commit ${commitHash} not found in remote refs (may be a historical SHA not at any branch tip). Proceeding with provided hash.`
+          );
+          return commitHash;
+        }
+
         if (commitHash) {
           throw new BadRequestError(`Commit or Ref "${commitHash}" not found on remote ${gitUrl}`);
         }

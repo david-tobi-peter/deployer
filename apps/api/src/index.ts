@@ -35,15 +35,21 @@ async function startServer() {
 
     const port = config.app.PORT || 3000;
     app.listen(port, () => {
-      Logger.info(`Deployer Control Plane running gracefully on port ${port}`);
+      Logger.info(`Deployer Control Plane running on port ${port}`);
     });
   } catch (error) {
     ErrorHandler.handleFatalError(error, "ServerBootstrap");
   }
 }
 
-process.on("uncaughtException", (error: Error) => {
+process.on("uncaughtException", (reason: unknown) => {
+  const error = reason instanceof Error ? reason : new Error(String(reason));
   ErrorHandler.handleFatalError(error, "UncaughtException");
+});
+
+process.on("unhandledRejection", (reason: unknown) => {
+  const error = reason instanceof Error ? reason : new Error(String(reason));
+  ErrorHandler.handleFatalError(error, "UnhandledRejection");
 });
 
 startServer();

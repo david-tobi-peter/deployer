@@ -16,16 +16,16 @@ const api = axios.create({
 });
 
 export const deploymentApi = {
-  getAll: async () => {
-    const { data } = await api.get<{ data: Deployment[], total: number }>('/deployments');
+  getAll: async (page: number = 1, limit: number = 10) => {
+    const { data } = await api.get<{ data: Deployment[], total: number }>(`/deployments?page=${page}&limit=${limit}`);
     return data;
   },
-  
+
   getById: async (id: string) => {
     const { data } = await api.get<{ data: Deployment }>(`/deployments/${id}`);
     return data;
   },
-  
+
   create: async (gitUrl: string, commitHash?: string) => {
     const { data } = await api.post<{ data: Deployment }>('/deployments', { gitUrl, commitHash });
     return data;

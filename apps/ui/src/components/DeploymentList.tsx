@@ -7,11 +7,13 @@ import { ExternalLink, Hash, Clock, Terminal } from 'lucide-react';
 
 export function DeploymentList() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
   const { data, isLoading } = useQuery({
-    queryKey: ['deployments'],
-    queryFn: deploymentApi.getAll,
-    refetchInterval: 5000, // Poll every 5s for status updates
+    queryKey: ['deployments', page],
+    queryFn: () => deploymentApi.getAll(page, limit),
+    refetchInterval: 10000, // Poll every 10s for status updates
   });
 
   if (isLoading) {
@@ -46,7 +48,7 @@ export function DeploymentList() {
                   </span>
                   <StatusBadge status={d.status} />
                 </div>
-                
+
                 <div className="flex flex-wrap items-center gap-4 text-zinc-500 text-[12px]">
                   <div className="flex items-center gap-1">
                     <Hash className="w-3.5 h-3.5" />
@@ -83,6 +85,28 @@ export function DeploymentList() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {data && data.total > limit && (
+        <div className="flex justify-between items-center bg-zinc-900/50 p-3 rounded-lg border border-border">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-4 py-2 bg-zinc-800 disabled:opacity-50 rounded-md text-sm transition-colors hover:bg-zinc-700 cursor-pointer"
+          >
+            Previous
+          </button>
+          <span className="text-zinc-500 text-sm font-medium">
+            Page {page} of {Math.ceil(data.total / limit)}
+          </span>
+          <button
+            onClick={() => setPage(p => Math.min(Math.ceil(data.total / limit), p + 1))}
+            disabled={page >= Math.ceil(data.total / limit)}
+            className="px-4 py-2 bg-zinc-800 disabled:opacity-50 rounded-md text-sm transition-colors hover:bg-zinc-700 cursor-pointer"
+          >
+            Next
+          </button>
         </div>
       )}
 

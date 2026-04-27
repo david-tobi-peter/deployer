@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import { AsyncLocalStorage } from "async_hooks";
 import config from "@/config/index.js";
+import { GET_GLOBAL_LOG_DIR } from "@/shared/index.js";
 
 const { combine, timestamp, printf, colorize } = winston.format;
 
@@ -28,10 +29,8 @@ const localFormat = printf(({ level, message, timestamp, stack, ...meta }) => {
   return logMessage;
 });
 
-const logDir = path.resolve(process.cwd(), "logs");
-if (!fs.existsSync(logDir)) {
-  fs.mkdirSync(logDir, { recursive: true });
-}
+const logDir = GET_GLOBAL_LOG_DIR();
+fs.mkdirSync(logDir, { recursive: true });
 
 export class Logger {
   private static instance: winston.Logger;

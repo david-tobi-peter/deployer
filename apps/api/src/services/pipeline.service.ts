@@ -4,7 +4,7 @@ import path from "path";
 import fs from "fs";
 import { EventEmitter } from "events";
 import { Logger } from "@loggers/index.js";
-import { DeploymentStatusEnum, type IDeploymentResponse } from "@/shared/index.js";
+import { DeploymentStatusEnum, type IDeploymentResponse, GET_BUILD_DIR, GET_LOG_FILE_DIR } from "@/shared/index.js";
 import config from "@/config/index.js";
 import { DeploymentService } from "./deployment.service.js";
 import Docker from "dockerode";
@@ -25,40 +25,51 @@ export class PipelineService {
    * @param {IDeploymentResponse} deployment
    */
   public async run(deployment: IDeploymentResponse) {
-    const buildDir = path.join(config.app.STORAGE_DIR, "builds", deployment.id);
+    const buildDir = GET_BUILD_DIR(deployment.id);
+    const logFileDir = GET_LOG_FILE_DIR(deployment.id);
 
-    if (!fs.existsSync(buildDir)) {
-      fs.mkdirSync(buildDir, { recursive: true });
-    }
+    fs.mkdirSync(buildDir, { recursive: true });
+    fs.mkdirSync(path.dirname(logFileDir), { recursive: true });
+
+    const emitAndLog = (line: string) => {
+      const cleanLine = line.replace(/\r?\n$/, "");
+      fs.appendFileSync(logFileDir, cleanLine + "\n");
+      deploymentLogEmitter.emit(`log:${deployment.id}`, cleanLine);
+    };
 
     try {
       Logger.info(`Starting pipeline for deployment ${deployment.id}`);
+      emitAndLog(`Starting pipeline for deployment ${deployment.id}`);
       await this.deploymentService.updateStatus(deployment.id, DeploymentStatusEnum.BUILDING);
 
       Logger.info(`Cloning ${deployment.gitUrl}...`);
+      emitAndLog(`Cloning ${deployment.gitUrl}...`);
       await execa("git", ["clone", deployment.gitUrl, "."], { cwd: buildDir });
 
       Logger.info(`Checking out commit ${deployment.commitHash}...`);
+      emitAndLog(`Checking out commit ${deployment.commitHash}...`);
       await execa("git", ["checkout", deployment.commitHash], { cwd: buildDir });
 
       const imageTag = `deployer-${deployment.commitHash.substring(0, 8)}`;
 
       Logger.info(`Building image with Railpack: ${imageTag}`);
+      emitAndLog(`Building image with Railpack: ${imageTag}`);
       const buildProcess = execa("railpack", ["build", ".", "--name", imageTag], {
         cwd: buildDir,
         extendEnv: true,
         env: {
-          BUILDKIT_HOST: config.app.BUILDKIT_HOST
+          BUILDKIT_HOST: config.app.BUILDKIT_HOST,
+          MISE_HTTP_TIMEOUT: "300"
         }
       });
 
       buildProcess.stdout?.on("data", (data) => {
-        const line = data.toString();
-        deploymentLogEmitter.emit(`log:${deployment.id}`, line);
+        const lines = data.toString().split('\n').filter((l: string) => l);
+        lines.forEach((line: string) => emitAndLog(line));
       });
       buildProcess.stderr?.on("data", (data) => {
-        const line = data.toString();
-        deploymentLogEmitter.emit(`log:${deployment.id}`, line);
+        const lines = data.toString().split('\n').filter((l: string) => l);
+        lines.forEach((line: string) => emitAndLog(line));
       });
 
       await buildProcess;
@@ -96,14 +107,21 @@ export class PipelineService {
       });
       Logger.info(`Deployment successfully completed for ${deployment.id}. Live at: ${liveUrl}`);
 
-      deploymentLogEmitter.emit(`log:${deployment.id}`, `__DONE__:${liveUrl}`);
+      const doneMsg = `__DONE__:${liveUrl}`;
+      fs.appendFileSync(logFileDir, doneMsg + "\n");
+      deploymentLogEmitter.emit(`log:${deployment.id}`, doneMsg);
 
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       await this.deploymentService.updateStatus(deployment.id, DeploymentStatusEnum.FAILED);
 
-      deploymentLogEmitter.emit(`log:${deployment.id}`, `__ERROR__:${message}`);
-      throw error;
+      const errMsg = `__ERROR__:${message}`;
+      if (fs.existsSync(path.dirname(logFileDir))) {
+        fs.appendFileSync(logFileDir, errMsg + "\n");
+      }
+      deploymentLogEmitter.emit(`log:${deployment.id}`, errMsg);
+
+      throw new InternalServerError(message);
     } finally {
       await fs.promises.rm(buildDir, { recursive: true, force: true });
     }
