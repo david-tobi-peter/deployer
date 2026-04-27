@@ -6,6 +6,9 @@ import type { IDeploymentResponse } from "@/shared/index.js";
 import { Service } from "typedi";
 import { execa } from "execa";
 import { Logger, als } from "@loggers/index.js";
+import { EventEmitter } from "events";
+
+export const globalDeploymentEmitter = new EventEmitter();
 
 @Service()
 export class DeploymentService {
@@ -83,14 +86,14 @@ export class DeploymentService {
       order: { createdAt: "DESC" }
     });
 
-    // if (existing) {
-    //   if (existing.status === DeploymentStatusEnum.BUILDING || existing.status === DeploymentStatusEnum.DEPLOYING) {
-    //     throw new BadRequestError("Container is already in pipeline");
-    //   }
-    //   if (existing.status === DeploymentStatusEnum.RUNNING) {
-    //     throw new BadRequestError("Container has already been built");
-    //   }
-    // }
+    if (existing) {
+      if (existing.status === DeploymentStatusEnum.BUILDING || existing.status === DeploymentStatusEnum.DEPLOYING) {
+        throw new BadRequestError("Container is already in pipeline");
+      }
+      if (existing.status === DeploymentStatusEnum.RUNNING) {
+        throw new BadRequestError("Container has already been built");
+      }
+    }
 
     Logger.info(`Creating a new deployment record in the database for ${gitUrl} at ${resolvedHash}...`);
 
@@ -158,6 +161,7 @@ export class DeploymentService {
   async updateStatus(id: string, status: DeploymentStatusEnum): Promise<void> {
     await this.repo.update(id, { status });
     Logger.info(`Status updated to ${status}`);
+    globalDeploymentEmitter.emit("update", id);
   }
 
   /**
@@ -168,5 +172,6 @@ export class DeploymentService {
   async updateDeployment(id: string, data: Partial<Deployment>): Promise<void> {
     await this.repo.update(id, data);
     Logger.info(`Deployment ${id} record updated`);
+    globalDeploymentEmitter.emit("update", id);
   }
 }

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { deploymentApi, Deployment } from '../lib/api';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { deploymentApi } from '../lib/api';
 import { StatusBadge } from './StatusBadge';
 import { LogViewer } from './LogViewer';
 import { ExternalLink, Hash, Clock, Terminal } from 'lucide-react';
@@ -9,11 +9,21 @@ export function DeploymentList() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const limit = 10;
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const eventSource = new EventSource('/api/deployments/stream');
+
+    eventSource.onmessage = (event) => {
+      queryClient.invalidateQueries({ queryKey: ['deployments'] });
+    };
+
+    return () => eventSource.close();
+  }, [queryClient]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['deployments', page],
     queryFn: () => deploymentApi.getAll(page, limit),
-    refetchInterval: 10000, // Poll every 10s for status updates
   });
 
   if (isLoading) {

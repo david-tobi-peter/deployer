@@ -6,6 +6,7 @@ const router = Router();
 const controller = Container.get(DeploymentController);
 
 router.get("/", controller.getAll);
+router.get("/stream", controller.streamDeployments);
 router.get("/:id", controller.getById);
 router.get("/:id/logs", controller.streamLogs);
 router.post("/", controller.create);

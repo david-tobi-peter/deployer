@@ -4,6 +4,7 @@ import { DeploymentService } from "@/services/deployment.service.js";
 import { PipelineService, deploymentLogEmitter } from "@/services/pipeline.service.js";
 import { ErrorHandler, BadRequestError } from "@errors/index.js";
 import { Logger } from "@loggers/index.js";
+import { globalDeploymentEmitter } from "@/services/deployment.service.js";
 import fs from "fs";
 import { GET_LOG_FILE_DIR } from "@/shared/index.js";
 
@@ -19,6 +20,7 @@ export class DeploymentController {
     this.getById = this.getById.bind(this);
     this.create = this.create.bind(this);
     this.streamLogs = this.streamLogs.bind(this);
+    this.streamDeployments = this.streamDeployments.bind(this);
   }
 
   async getAll(req: Request, res: Response) {
@@ -73,6 +75,23 @@ export class DeploymentController {
     } catch (error) {
       ErrorHandler.handleError(error, res);
     }
+  }
+
+  async streamDeployments(req: Request, res: Response) {
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
+
+    const onUpdate = (id: string) => {
+      res.write(`data: ${id}\n\n`);
+    };
+
+    globalDeploymentEmitter.on("update", onUpdate);
+
+    req.on("close", () => {
+      globalDeploymentEmitter.off("update", onUpdate);
+    });
   }
 
   async streamLogs(req: Request, res: Response) {
